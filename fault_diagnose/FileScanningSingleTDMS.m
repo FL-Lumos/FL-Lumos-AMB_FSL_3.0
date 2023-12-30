@@ -107,9 +107,9 @@ classdef FileScanningSingleTDMS
             end
 
             % 扫描状态(1：正常，2：疑似故障，3：严重故障)
-            if obj.file__scanning_serious_fault_points/obj.file_total_points > str2num(set_scanning_sensitivity{1}) % 根据敏感度的第一位先判断 是否存在严重故障
+            if obj.file__scanning_serious_fault_points/obj.file_total_points > str2num(set_scanning_sensitivity{2}) % 根据敏感度的第一位先判断 是否存在严重故障
                 obj.status_label = 3;
-            elseif (obj.file__scanning_suspected_fault_points+obj.file__scanning_serious_fault_points)/obj.file_total_points > str2num(set_scanning_sensitivity{2}) % 根据敏感度的第二位再判断 是否存在疑似故障
+            elseif (obj.file__scanning_suspected_fault_points+obj.file__scanning_serious_fault_points)/obj.file_total_points > str2num(set_scanning_sensitivity{1}) % 根据敏感度的第二位再判断 是否存在疑似故障
                 obj.status_label = 2;
             else
                 obj.status_label = 1;
