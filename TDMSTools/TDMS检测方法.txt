@@ -1,0 +1,2 @@
+[a,b] = TDMS_readTDMSFile(fileName); %a,b中存有tdms数据的信息
+[channelData channelNames] = TDMS_readChannelOrGroup(fileName,a.groupNames);
