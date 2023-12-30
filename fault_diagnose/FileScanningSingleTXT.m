@@ -4,7 +4,7 @@ classdef FileScanningSingleTXT
     %{
     参数说明：
     1.输入
-        scn_mode：用于读取设 扫描模式
+        scn_mode：用于读取设 扫描模式 % 2023.12.30：3.0版本中，不再使用通道数模式切换，这个变量暂时保留，但是不再使用
         scn_channel：用于读取 待检测的通道（通道时默认顺序：x1, y1, x2, y2, z，...）
         scn_channel_max：用于读取 待检测的通道的设计最大值
         scn_serious_threshold：用于读取 严重阈值设
@@ -79,29 +79,11 @@ classdef FileScanningSingleTXT
             channelData_scn_serious_result = sum(channelData_scn_serious);
             channelData_scn_suspected_result = sum(channelData_scn_suspected);
 
-            % 根据模式选择不同的故障点的判断标注（简洁：要全部通道都超阈值，严格：只要有一个通道超阈值，适中：超阈值的通道数大于等于一半）
-            if strcmp(scn_mode,'简洁')
-                % 严重故障点的个数
-                obj.file__scanning_serious_fault_points = length(find(channelData_scn_serious_result == length(scn_channel)));
-                % 疑似故障点的个数
-                obj.file__scanning_suspected_fault_points = length(find(channelData_scn_suspected_result == length(scn_channel)));
-                obj.file__scanning_suspected_fault_points = obj.file__scanning_suspected_fault_points - obj.file__scanning_serious_fault_points;
-
-            elseif strcmp(scn_mode,'严格')
-                % 严重故障点的个数
-                obj.file__scanning_serious_fault_points = length(find(channelData_scn_serious_result >= 1));
-                % 疑似故障点的个数
-                obj.file__scanning_suspected_fault_points = length(find(channelData_scn_suspected_result >= 1));
-                obj.file__scanning_suspected_fault_points = obj.file__scanning_suspected_fault_points - obj.file__scanning_serious_fault_points;
-
-            elseif strcmp(scn_mode,'适中')
-                % 严重故障点的个数
-                obj.file__scanning_serious_fault_points = length(find(channelData_scn_serious_result >= length(scn_channel)/2));
-                % 疑似故障点的个数
-                obj.file__scanning_suspected_fault_points = length(find(channelData_scn_suspected_result >= length(scn_channel)/2));
-                obj.file__scanning_suspected_fault_points = obj.file__scanning_suspected_fault_points - obj.file__scanning_serious_fault_points;
-
-            end
+            % 严重故障点的个数
+            obj.file__scanning_serious_fault_points = length(find(channelData_scn_serious_result >= 1));
+            % 疑似故障点的个数
+            obj.file__scanning_suspected_fault_points = length(find(channelData_scn_suspected_result >= 1));
+            obj.file__scanning_suspected_fault_points = obj.file__scanning_suspected_fault_points - obj.file__scanning_serious_fault_points;
 
             % 扫描状态(1：正常，2：疑似故障，3：严重故障)
             if obj.file__scanning_serious_fault_points/obj.file_total_points > str2num(set_scanning_sensitivity{2}) % 根据敏感度的第一位先判断 是否存在严重故障
