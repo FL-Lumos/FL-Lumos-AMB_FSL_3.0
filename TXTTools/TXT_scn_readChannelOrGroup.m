@@ -57,7 +57,7 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
 
     % 把每条数据中的各部分提取出来
     %16个通道的各数据通道的缩放系数：
-    channel_scale_fa = [1/2048, 1/32, 1/32, 1/32, 1/32, 1/32, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256];    
+    channel_scale_fa = [1/2048, 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256];    
 
     tt_sec_array = txt_data_char_array(:,1:tt_sec); % 从txt_data中提取出所有的时间戳数据
     tt_100u_sec_array = txt_data_char_array(:,tt_sec+1:tt_sec+tt_100u_sec); % 从txt_data中提取出所有的100微妙时间戳数据
