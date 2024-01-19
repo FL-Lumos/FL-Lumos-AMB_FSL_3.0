@@ -58,6 +58,8 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
     % 把每条数据中的各部分提取出来
     %16个通道的各数据通道的缩放系数：
     channel_scale_fa = [1/2048, 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256];    
+% %       用除法，避免浮点数问题
+%     channel_scale_fa = [2048, (32*1000), (32*1000), (32*1000), (32*1000), (32*1000), 256, 256, 256, 256, 256, 256, 256, 256, 256, 256];        
 
     tt_sec_array = txt_data_char_array(:,1:tt_sec); % 从txt_data中提取出所有的时间戳数据
     tt_100u_sec_array = txt_data_char_array(:,tt_sec+1:tt_sec+tt_100u_sec); % 从txt_data中提取出所有的100微妙时间戳数据
@@ -88,6 +90,7 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
     %AD_RAW_array = strcat('0x', AD_RAW_array, 's16');
     AD_RAW_dec_array = hex2dec(AD_RAW_array);
     AD_RAW_dec_array = typecast(uint16(AD_RAW_dec_array), 'int16');
+    AD_RAW_dec_array = double(AD_RAW_dec_array);
 
         %重构，变为每一列对应一个通道在该txt文件中的所有数据点数
     AD_RAW_dec_array = reshape(AD_RAW_dec_array, channelNum, total_record*channel_points_per_record)'; 
@@ -95,6 +98,7 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
         %按物理意义，对各通道（各列）的数据进行缩放
     for i = 1:channelNum
         AD_RAW_dec_array(:,i) = AD_RAW_dec_array(:,i)*channel_scale_fa(i);
+%         AD_RAW_dec_array(:,i) = AD_RAW_dec_array(:,i)/channel_scale_fa(i);
     end
     % 将AD_RAW_dec_array的每一列都单独按列展开为一维数组
     AD_RAW_dec = zeros(channelNum, total_record*channel_points_per_record);

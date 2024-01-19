@@ -110,7 +110,8 @@ function [channelData channelNames] = TDMS_readChannelOrGroup(fileName)
 
         %按物理意义，对各通道（各列）的数据进行缩放
     for i = 1:channelNum
-        AD_RAW_dec_array(:,i) = AD_RAW_dec_array(:,i)*channel_scale_fa(i);
+%         AD_RAW_dec_array(:,i) = AD_RAW_dec_array(:,i)*channel_scale_fa(i);
+        AD_RAW_dec_array(:,i) = AD_RAW_dec_array(:,i)/channel_scale_fa(i);
     end
     % 将AD_RAW_dec_array的每一列都单独按列展开为一维数组
     AD_RAW_dec = zeros(channelNum, total_record*channel_points_per_record);
