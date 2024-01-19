@@ -183,10 +183,10 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
 
 
 %-----------将数据通道的值都归一化到-5~5V之间（为了与tdms的显示一致）-------------------------%
-    % 将AD_RAW_dec的每一行的元素都单独归一化到-5~5V之间
-    for i = 1:channelNum
-        AD_RAW_dec(i,:) = AD_RAW_dec(i,:)/max(abs(AD_RAW_dec(i,:)))*5;
-    end
+%     % 将AD_RAW_dec的每一行的元素都单独归一化到-5~5V之间
+%     for i = 1:channelNum
+%         AD_RAW_dec(i,:) = AD_RAW_dec(i,:)/max(abs(AD_RAW_dec(i,:)))*5;
+%     end
 
 
 %--------------------------将所有数据输出：channelData-------------------------%
