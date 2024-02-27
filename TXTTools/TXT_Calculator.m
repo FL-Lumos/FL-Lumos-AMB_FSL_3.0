@@ -1,22 +1,9 @@
 % 读出当前filename单个txt文件的channeNames：各通道名称，包括空数据通道；channelData：各通道的数据
 
-function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileName)
+function  cal_result = TXT_Calculator(txt_data)
+%-----------------------获取数据----------------------------------------------%
+txt_data = txt_data{:}; % 将cell数组转换为字符串
 
-    TXT_channeNames = 'EXC,X1,Y1,Z1,X2,Y2,PX1,NX1,PY1,NY1,PZ,NZ,PX2,NX2,PY2,NY2,time,speed,rotor_angle';
-
-    channelNames = strsplit(TXT_channeNames, ',');
-    
-
-%---------------读取对应文件的原始数据-----------------%
-        % 读入txt数据文件
-    filePathName = strcat(filepath,fileName);
-
-    fid = fopen(filePathName, 'r');
-    txt_data = fread(fid, '*char');
-    fclose(fid);    
-%---------------读取对应文件的原始数据-----------------%
-    
-%---------------- 定义参数----------------------------%
 
 %----------1. 定义参数--txt文件中每条数据各部分的定义和起始位置~结束位置-----%
     chars_per_record = 2944; % 每条数据包含的字符数
@@ -52,14 +39,11 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
 % txt_data是一个toal_characters长度的字符串，需要将txt_data变为toal_character行[tt_sec（8个字符）,tt_100u（4个字符）,保留（16个字符）,AD_RAW(45个数据点（64个字符）),speed_hz（8个字符）,rotor_angle_rad（8个字符）,保留（20个字符）]51列的矩阵
 
     %把字符串变为1*n的矩阵
-    txt_data_char_array = char(txt_data)';
-    txt_data_char_array = reshape(txt_data_char_array, chars_per_record, toal_characters/chars_per_record)'; % 每一行是一条数据
+    txt_data_char_array = txt_data;
 
     % 把每条数据中的各部分提取出来
     %16个通道的各数据通道的缩放系数：
-    channel_scale_fa = [1/2048, 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/(32*1000), 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256];    
-% %       用除法，避免浮点数问题
-%     channel_scale_fa = [2048, (32*1000), (32*1000), (32*1000), (32*1000), (32*1000), 256, 256, 256, 256, 256, 256, 256, 256, 256, 256];        
+    channel_scale_fa = [1/2048, 1/32, 1/32, 1/32, 1/32, 1/32, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256, 1/256];    
 
     tt_sec_array = txt_data_char_array(:,1:tt_sec); % 从txt_data中提取出所有的时间戳数据
     tt_100u_sec_array = txt_data_char_array(:,tt_sec+1:tt_sec+tt_100u_sec); % 从txt_data中提取出所有的100微妙时间戳数据
@@ -79,6 +63,16 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
     tt_sec_array = [tt_sec_array(:,7:8), tt_sec_array(:,5:6), tt_sec_array(:,3:4), tt_sec_array(:,1:2)];
     tt_sec_array = strcat('0x', tt_sec_array, 'u32');
     tt_sec_dec_array = hex2dec(tt_sec_array)/1; % 除以1是缩放系数
+            % 将tt_sec_array由 秒 转换为 08-Nov-2023 10:36:26 格式
+    seconds_since_epoch = tt_sec_dec_array;    
+            % 计算起始时间（1970年1月1日）
+    start_time = datetime(1970, 1, 1, 0, 0, 0);    
+            % 将秒数加到起始时间，得到指定时间点
+    specified_time = start_time + seconds(seconds_since_epoch);
+            % 由'datetime'类型变为str类型数据
+    tt_sec_dec_array = datestr(specified_time);
+    
+
 
         % tt_100u_sec_array
     tt_100u_sec_array = [tt_100u_sec_array(:,3:4), tt_100u_sec_array(:,1:2)];
@@ -90,6 +84,7 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
     %AD_RAW_array = strcat('0x', AD_RAW_array, 's16');
     AD_RAW_dec_array = hex2dec(AD_RAW_array);
     AD_RAW_dec_array = typecast(uint16(AD_RAW_dec_array), 'int16');
+    % 再把AD_RAW_dec_array变为double类型
     AD_RAW_dec_array = double(AD_RAW_dec_array);
 
         %重构，变为每一列对应一个通道在该txt文件中的所有数据点数
@@ -98,7 +93,6 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
         %按物理意义，对各通道（各列）的数据进行缩放
     for i = 1:channelNum
         AD_RAW_dec_array(:,i) = AD_RAW_dec_array(:,i)*channel_scale_fa(i);
-%         AD_RAW_dec_array(:,i) = AD_RAW_dec_array(:,i)/channel_scale_fa(i);
     end
     % 将AD_RAW_dec_array的每一列都单独按列展开为一维数组
     AD_RAW_dec = zeros(channelNum, total_record*channel_points_per_record);
@@ -117,99 +111,20 @@ function [channelData channelNames] = TDMS_scn_readChannelOrGroup(filepath,fileN
     rotor_angle_rad_array = [rotor_angle_rad_array(:,7:8), rotor_angle_rad_array(:,5:6), rotor_angle_rad_array(:,3:4), rotor_angle_rad_array(:,1:2)];
     % rotor_angle_rad_dec_array = hex2num(rotor_angle_rad_array)/1; % 示例代码这里给错了，因为这里是个单精度数，而hex2num直接转是要输入双进度的，说以这里不能直接转换。
     rotor_angle_rad_dec_array = typecast(uint32(hex2dec(rotor_angle_rad_array)),'single')/1;
-    
+
     %------------到此，已读取所有数据，并且已为对应的物理量-----------------%
     %---------------------------------------------------------------------%
 
 
 
-%------------人为计算量：time、speed、rotor_angle-----------------%
-    % time
-    time_temp = tt_sec_dec_array + tt_100u_sec_dec_array/1000000*100; % 每个数据点的采集时间（人为平均计算）;/1000000*100用于 100微秒 单位转换为 秒
-    time = zeros(length(time_temp), channel_points_per_record); % 每个数据点的采集时间（人为平均计算）
-    average_time_per_point = zeros(length(time_temp),1); % 每个数据点的平均采集时间（人为平均计算）
-    
-    time(:,1) = time_temp; % 第1个数据点的采集时间（人为平均计算）
-    time(1:end-1,end) = time(2:end,1); % 第2个数据点的采集时间（人为平均计算） = 第2个数据点的采集时间（人为平均计算） - 第1个数据点的采集时间（人为平均计算）
-
-    if total_record < 2
-        msgbox('文件内仅有一条数据，无法计算采集时间点！')        
-    end
-    average_time_per_point(1:end-1, 1) = (time(1:end-1,end) - time(1:end-1,1))/(channel_points_per_record); % 每个数据点的平均采集时间（人为平均计算） = （该段的采集时间/该段的数据点数）
-    average_time_per_point(end, 1) = average_time_per_point(end-1, 1);
-    
-    for i = 2:channel_points_per_record
-        time(:,i) = time(:,i-1) + average_time_per_point(:,1); % 第i个数据点的采集时间（人为平均计算） = 第i-1个数据点的采集时间（人为平均计算） + 每个数据点的平均采集时间（人为平均计算）
-    end 
-    
-
-    % 将time按行展开为一维数组
-    time = reshape(time', 1, TXT_channel_total_points);
-
-    % speed
-    speed_temp = speed_hz_dec_array; % 转换为转/分
-    speed = zeros(length(speed_temp), channel_points_per_record); % 每个数据点的转速
-    average_speed_per_point = zeros(length(speed_temp),1); % 每个数据点的平均转速
-
-    speed(:,1) = speed_temp; % 第1个数据点的转速
-    speed(1:end-1,end) = speed(2:end,1); % 第2个数据点的转速 = 第2个数据点的转速 - 第1个数据点的转速
-
-    average_speed_per_point(1:end-1, 1) = (speed(1:end-1,end) - speed(1:end-1,1))/(channel_points_per_record); % 每个数据点的平均转速 = （该段的转速/该段的数据点数）
-    average_speed_per_point(end, 1) = average_speed_per_point(end-1, 1);
-
-    for i = 2:channel_points_per_record
-        speed(:,i) = speed(:,i-1) + average_speed_per_point(:,1); % 第i个数据点的转速 = 第i-1个数据点的转速 + 每个数据点的平均转速
-    end
-    % 将speed按行展开为一维数组
-    speed = reshape(speed', 1, TXT_channel_total_points);    
-
-    % rotor_angle
-    rotor_angle_temp = rotor_angle_rad_dec_array; % 转换为弧度
-    rotor_angle = zeros(length(rotor_angle_temp), channel_points_per_record); % 每个数据点的转子角度
-    average_rotor_angle_per_point = zeros(length(rotor_angle_temp),1); % 每个数据点的平均转子角度
-
-    rotor_angle(:,1) = rotor_angle_temp; % 第1个数据点的转子角度
-    rotor_angle(1:end-1,end) = rotor_angle(2:end,1); % 第2个数据点的转子角度 = 第2个数据点的转子角度 - 第1个数据点的转子角度
-
-    average_rotor_angle_per_point(1:end-1, 1) = (rotor_angle(1:end-1,end) - rotor_angle(1:end-1,1))/(channel_points_per_record); % 每个数据点的平均转子角度 = （该段的转子角度/该段的数据点数）
-    average_rotor_angle_per_point(end, 1) = average_rotor_angle_per_point(end-1, 1);
-
-    for i = 2:channel_points_per_record
-        rotor_angle(:,i) = rotor_angle(:,i-1) + average_rotor_angle_per_point(:,1); % 第i个数据点的转子角度 = 第i-1个数据点的转子角度 + 每个数据点的平均转子角度
-    end
-    % 将rotor_angle按行展开为一维数组
-    rotor_angle = reshape(rotor_angle', 1, TXT_channel_total_points);
-
-%------------人为计算量：time、speed、rotor_angle-----------------%
-%---------------------------------------------------------------------%
-
-
-%-----------将数据通道的值都归一化到-5~5V之间（为了与tdms的显示一致）-------------------------%
-%     % 将AD_RAW_dec的每一行的元素都单独归一化到-5~5V之间
-%     for i = 1:channelNum
-%         AD_RAW_dec(i,:) = AD_RAW_dec(i,:)/max(abs(AD_RAW_dec(i,:)))*5;
-%     end
-
-
 %--------------------------将所有数据输出：channelData-------------------------%
-    channelData_temp = zeros(length(channelNames), TXT_channel_total_points);
 
-    for i = 1:channelNum
-        channelData_temp(i,:) = AD_RAW_dec(i,:); % 将AD_RAW_dec_array的每一列都单独按列展开为一维数组
-    end
 
-    channelData_temp(end-2,:) = time; % 将time按行展开为一维数组
-    channelData_temp(end-1,:) = speed; % 将speed按行展开为一维数组
-    channelData_temp(end,:) = rotor_angle; % 将rotor_angle按行展开为一维数组
 
-    % 将channelData的每一行都合并为一个元素，存入channelData_cell中
-    channelData_cell = cell(1, length(channelNames));
+    cell_result = cell(1, 5);
 
-    for i = 1:length(channelNames)
-        channelData_cell{1,i} = channelData_temp(i,:);
-    end
+    cal_result = struct('tt_sec', tt_sec_dec_array, 'tt_100u_sec', tt_100u_sec_dec_array, 'AD_RAW', AD_RAW_dec, 'speed_hz', speed_hz_dec_array, 'rotor_angle_rad', rotor_angle_rad_dec_array);
 
-    channelData = channelData_cell;
 
 %--------------------------将所有数据输出：channelData-------------------------%
 %---------------------------------------------------------------------%

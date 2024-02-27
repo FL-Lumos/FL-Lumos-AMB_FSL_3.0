@@ -97,7 +97,7 @@ function [channelData channelNames] = TDMS_readChannelOrGroup(fileName)
         % tt_100u_sec_array
     tt_100u_sec_array = [tt_100u_sec_array(:,3:4), tt_100u_sec_array(:,1:2)];
     tt_100u_sec_array = strcat('0x', tt_100u_sec_array, 'u16');
-    tt_100u_sec_dec_array = hex2dec(tt_100u_sec_array)/1;
+    tt_100u_sec_dec_array = hex2dec(tt_100u_sec_array)/10000;
 
         % AD_RAW_array
     AD_RAW_array = [AD_RAW_array(:,3:4), AD_RAW_array(:,1:2)];
@@ -123,11 +123,13 @@ function [channelData channelNames] = TDMS_readChannelOrGroup(fileName)
 
     % speed_hz_array
     speed_hz_array = [speed_hz_array(:,7:8), speed_hz_array(:,5:6), speed_hz_array(:,3:4), speed_hz_array(:,1:2)];
-    speed_hz_dec_array = hex2num(speed_hz_array)/1;
+    % speed_hz_dec_array = hex2num(speed_hz_array)/1;% 示例代码这里给错了，因为这里是个单精度数，而hex2num直接转是要输入双进度的，说以这里不能直接转换。
+    speed_hz_dec_array = typecast(uint32(hex2dec(speed_hz_array)),'single')/1;
 
     % rotor_angle_rad_array
     rotor_angle_rad_array = [rotor_angle_rad_array(:,7:8), rotor_angle_rad_array(:,5:6), rotor_angle_rad_array(:,3:4), rotor_angle_rad_array(:,1:2)];
-    rotor_angle_rad_dec_array = hex2num(rotor_angle_rad_array)/1;
+    % rotor_angle_rad_dec_array = hex2num(rotor_angle_rad_array)/1; % 示例代码这里给错了，因为这里是个单精度数，而hex2num直接转是要输入双进度的，说以这里不能直接转换。
+    rotor_angle_rad_dec_array = typecast(uint32(hex2dec(rotor_angle_rad_array)),'single')/1;
     
     %------------到此，已读取所有数据，并且已为对应的物理量-----------------%
     %---------------------------------------------------------------------%
